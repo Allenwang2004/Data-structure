@@ -1,0 +1,81 @@
+//---------------------------------------------------------------------------
+
+#ifndef MagicSquareH
+#define MagicSquareH
+//---------------------------------------------------------------------------
+#include <System.Classes.hpp>
+#include <Vcl.Controls.hpp>
+#include <Vcl.StdCtrls.hpp>
+#include <Vcl.Forms.hpp>
+#include <Vcl.ComCtrls.hpp>
+#include <Vcl.Grids.hpp>
+#include <Vcl.ExtCtrls.hpp>
+//---------------------------------------------------------------------------
+class TForm1 : public TForm
+{
+__published:	// IDE-managed Components
+	TPageControl *PageControl1;
+	TTabSheet *TabSheet1;
+	TLabel *Label1;
+	TLabel *Label2;
+	TLabel *Label3;
+	TLabel *Label4;
+	TLabel *Label5;
+	TPageControl *PageControl2;
+	TTabSheet *TabSheet4;
+	TMemo *Memo1;
+	TTabSheet *TabSheet5;
+	TMemo *Memo2;
+	TTabSheet *TabSheet6;
+	TMemo *Memo3;
+	TTabSheet *¤À®æ¤è°};
+	TMemo *Memo4;
+	TStringGrid *StringGrid1;
+	TEdit *Edit1;
+	TRadioButton *RadioButton1;
+	TRadioButton *RadioButton2;
+	TRadioButton *RadioButton3;
+	TRadioButton *RadioButton4;
+	TRadioButton *RadioButton5;
+	TRadioButton *RadioButton6;
+	TRadioButton *RadioButton7;
+	TRadioButton *RadioButton8;
+	TButton *Button1;
+	TTabSheet *TabSheet2;
+	TLabel *Label6;
+	TPageControl *PageControl3;
+	TTabSheet *TabSheet8;
+	TTabSheet *TabSheet9;
+	TTabSheet *TabSheet10;
+	TTabSheet *TabSheet11;
+	TLabel *Label7;
+	TEdit *Edit2;
+	TMemo *Memo5;
+	TMemo *Memo6;
+	TMemo *Memo7;
+	TMemo *Memo8;
+	TButton *Button2;
+	TLabel *Label8;
+	TStringGrid *StringGrid2;
+	void __fastcall Button1Click(TObject *Sender);
+	void __fastcall RadioButton1Click(TObject *Sender);
+	void __fastcall RadioButton3Click(TObject *Sender);
+	void __fastcall RadioButton2Click(TObject *Sender);
+	void __fastcall RadioButton4Click(TObject *Sender);
+	void __fastcall RadioButton5Click(TObject *Sender);
+	void __fastcall RadioButton7Click(TObject *Sender);
+	void __fastcall RadioButton6Click(TObject *Sender);
+	void __fastcall RadioButton8Click(TObject *Sender);
+	void __fastcall Button2Click(TObject *Sender);
+
+
+
+
+private:	// User declarations
+public:		// User declarations
+	__fastcall TForm1(TComponent* Owner);
+};
+//---------------------------------------------------------------------------
+extern PACKAGE TForm1 *Form1;
+//---------------------------------------------------------------------------
+#endif

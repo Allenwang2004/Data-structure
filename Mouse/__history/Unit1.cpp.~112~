@@ -1,0 +1,760 @@
+﻿//---------------------------------------------------------------------------
+#include <vcl.h>
+#pragma hdrstop
+#include <time.h>
+#include "Unit1.h"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+#pragma resource "*.dfm"
+
+bool found = false;
+
+#define possible_direction 8
+
+struct offset     //走一步的位移量
+{
+	int dx, dy;
+};
+
+struct offset move[possible_direction];
+
+struct position    //座標值及移動方向
+{  int x,y;
+   int dir;
+};
+int m, p, top = -1;
+int a=0;
+int b=1;
+position Stack [200];
+int mark[200][200];
+int play[200][200];
+int * * maze;
+int * * g_maze;
+int g_Heigh, Heigh,  g_Width, Width;
+int GenerateFlag = 0;
+AnsiString str = "";
+int RandColor = rand()%255+1;
+int mouseposRow = 1, mouseposCol = 0;
+TForm1 *Form1;
+void push (struct position data)
+{
+	if (top == (g_Heigh*p-1)) ; //堆疊已滿
+	else
+		Stack[++top] = data;
+}
+
+struct position pop()
+{
+	if (top == -1)
+	{
+		position step;
+		step.x = -1;
+		step.y = -1;
+		step.dir = 0;
+		return step;           //堆疊已空
+	}
+	else
+	{
+		return Stack[top--];
+	}
+}
+
+int **generatemaze(int **maze, int x, int y)      //產生迷宮
+{
+	int direction;
+	maze[x][y] = 0;
+
+	while((y+2 < g_Width && maze[x][y+2]==1) || (x+2 < g_Heigh && maze[x+2][y]==1) || (y-2 > 0 && maze[x][y-2]==1) || (x-2 > 0 && maze[x-2][y]==1))
+	{
+		direction = rand()%4+1;
+		if (direction==1 && (y+2 < g_Width && maze[x][y+2]==1))
+		{   maze[x][y+1] = 0;
+            maze = generatemaze(maze, x, y+2);
+        }
+		else if (direction==2 && (x-2 > 0 && maze[x-2][y]==1))
+		{   maze[x-1][y] = 0;
+            maze = generatemaze(maze, x-2, y);
+        }
+		else if (direction==3 && (y-2 > 0 && maze[x][y-2]==1))
+		{   maze[x][y-1] =0;
+            maze = generatemaze(maze, x, y-2);
+        }
+		else if (direction==4 && (x+2 < g_Heigh && maze[x+2][y]==1))
+		{   maze[x+1][y] =0;
+            maze = generatemaze(maze, x+2,y);
+		}
+	}
+	return maze;
+}
+
+void FindTour(int way)        //找路徑
+{
+	int u, v, i, j;
+	position step;
+	found = false;
+	m = g_Heigh-2;
+	p = g_Width-2;
+	Form1->Memo1->Lines->Add("m="+IntToStr(m)+" p="+IntToStr(p));
+	for (i=0; i<=m+1; i++)
+	{
+		for (j=0; j<=p+1; j++)
+		{
+			mark[i][j] = maze[i][j];
+			Form1->StringGrid1->Cells[j][i] = maze[i][j];
+			Form1->StringGrid2->Cells[j][i] = maze[i][j];
+			Form1->StringGrid3->Cells[j][i] = maze[i][j];
+		}
+	}
+	Form1->StringGrid1->Refresh();
+	Form1->StringGrid2->Refresh();
+	Form1->StringGrid3->Refresh();
+	//複製
+	Form1->Memo1->Lines->Add("===========Mark(m:"+IntToStr(m)+" p:"+IntToStr(p)+")===========");
+	for (i=0 ; i<m+2 ; i++)
+	{
+		for (str="", j=0 ; j<p+2 ; j++)
+		{
+			str += " "+IntToStr(mark[i][j]);
+		}
+		Form1->Memo1->Lines->Add(str);
+	}
+	mark[1][0] = 3;                        //設入口
+	Form1->StringGrid1->Cells[0][1] = "*"; //設入口
+	Form1->StringGrid2->Cells[0][1] = "3"; //設入口
+	Form1->StringGrid3->Cells[0][1] = "3"; //設入口
+	step.x = 1;  step.y = 1;  step.dir = 2;
+	push(step);
+	mark[1][1] = 3;
+	Form1->StringGrid1->Cells[1][1] = "*";
+	Form1->StringGrid2->Cells[1][1] = "3";
+	Form1->StringGrid3->Cells[1][1] = "3";
+	Sleep((Form1->TrackBar1->Position)*10);
+	while (top != -1)   //堆疊內仍有元素
+	{
+		step = pop();
+		while((step.dir <= 7) && (!found)) //還有其他方向可以走
+		{
+			u = step.x+move[step.dir].dx;
+			v = step.y+move[step.dir].dy;
+			if((maze[u][v]==0) && (mark[u][v]==0))
+			{
+				mark[u][v] = 3;                     //設為可走路徑
+				push(step);
+				Form1->StringGrid1->Cells[step.y][step.x] = "*";   	Form1->StringGrid1->Refresh();
+				Form1->StringGrid2->Cells[step.y][step.x] = "3"; 	Form1->StringGrid2->Refresh();
+				Form1->StringGrid3->Cells[step.y][step.x] = "3"; 	Form1->StringGrid3->Refresh();
+				Sleep((Form1->TrackBar1->Position)*10);
+				if((u == m) && (v == p+1))          //回推路徑
+				{
+					found = true;
+					step.x = u;
+					step.y = v+1;
+					step.dir = 2;
+					push(step);
+					Form1->StringGrid1->Cells[v][u] = "$";   Form1->StringGrid1->Cells[v+1][u] = "$";
+					Form1->StringGrid2->Cells[v][u] = "4";   Form1->StringGrid2->Cells[v+1][u] = "4";
+					Form1->StringGrid3->Cells[v][u] = "4";   Form1->StringGrid3->Cells[v+1][u] = "4";
+					Form1->StringGrid1->Refresh();
+					Form1->StringGrid2->Refresh();
+					Form1->StringGrid3->Refresh();
+					for (i=0; i<=m+1; i++)
+					{
+						for (j=0; j<=p+1; j++)
+						{
+							mark[i][j] = maze[i][j];
+						}
+					}
+					mark[u][v+1] = 3;
+					mark[u][v] = 3;
+					while (top != -1)
+					{
+						step = pop();
+						mark[step.x][step.y] = 3;
+						Form1->StringGrid1->Cells[step.y][step.x] = "$";
+						Form1->StringGrid2->Cells[step.y][step.x] = "4";
+						Form1->StringGrid3->Cells[step.y][step.x] = "4";
+						Form1->StringGrid1->Refresh();
+						Form1->StringGrid2->Refresh();
+						Form1->StringGrid3->Refresh();
+						Sleep((Form1->TrackBar1->Position)*10);
+					}
+					Form1->Memo1->Lines->Add(str);
+				}
+				else
+				{
+					step.x = u;
+					step.y = v;
+					step.dir = 0;
+				}
+			}
+			else
+			{
+				if(way == 8)
+					step.dir ++;
+				else if(way == 4)
+					step.dir += 2;
+			}
+			if(step.dir>7)
+			{
+				Form1->StringGrid1->Cells[step.y][step.x] = "*";   	Form1->StringGrid1->Refresh();
+				Form1->StringGrid2->Cells[step.y][step.x] = "3"; 	Form1->StringGrid2->Refresh();
+				Form1->StringGrid3->Cells[step.y][step.x] = "3"; 	Form1->StringGrid3->Refresh();
+			}
+
+		}
+	}
+	mark[1][0] = 3;
+	mark[g_Heigh-2][g_Width-1] = 3;
+	Form1->StringGrid1->Cells[0][1] = "$";
+	Form1->StringGrid2->Cells[0][1] = "4";
+	Form1->StringGrid3->Cells[0][1] = "4";
+	AnsiString str="";
+	Form1->Memo1->Lines->Add("===========Answer(m:"+IntToStr(m)+" p:"+IntToStr(p)+")===========");
+	for (i=0 ; i<m+2 ; i++)
+	{
+		for (str="", j=0 ; j<p+2 ; j++)
+		{
+			str += " "+IntToStr(mark[i][j]);
+		}
+		Form1->Memo1->Lines->Add(str);
+	}
+	for(i = 0; i<g_Heigh; i++)
+	{
+		delete []maze[i];
+	}
+	delete maze;
+	if(found==1)
+		ShowMessage("Success!");
+	else
+		ShowMessage("Can't find a way out!");
+}
+void FindNewTour(int way)        //找新路徑  但我沒有成功 哈哈
+{
+	int u, v, i, j;
+	position step;
+	found = false;
+	m = g_Heigh-2;
+	p = g_Width-2;
+	Form1->Memo1->Lines->Add("m="+IntToStr(m)+" p="+IntToStr(p));
+	for (i=0; i<=m+1; i++)
+	{
+		for (j=0; j<=p+1; j++)
+		{
+			mark[i][j] = maze[i][j];
+			Form1->StringGrid1->Cells[j][i] = maze[i][j];
+			Form1->StringGrid2->Cells[j][i] = maze[i][j];
+			Form1->StringGrid3->Cells[j][i] = maze[i][j];
+		}
+	}
+	Form1->StringGrid1->Refresh();
+	Form1->StringGrid2->Refresh();
+	Form1->StringGrid3->Refresh();
+	//複製
+	Form1->Memo1->Lines->Add("===========Mark(m:"+IntToStr(m)+" p:"+IntToStr(p)+")===========");
+	for (i=0 ; i<m+2 ; i++)
+	{
+		for (str="", j=0 ; j<p+2 ; j++)
+		{
+			str += " "+IntToStr(mark[i][j]);
+		}
+		Form1->Memo1->Lines->Add(str);
+	}
+	mark[1][0] = 3;                        //設入口
+	Form1->StringGrid1->Cells[0][1] = "*"; //設入口
+	Form1->StringGrid2->Cells[0][1] = "3"; //設入口
+	Form1->StringGrid3->Cells[0][1] = "3"; //設入口
+	step.x = 1;  step.y = 1;  step.dir = 2;
+	push(step);
+	mark[1][1] = 3;
+	Form1->StringGrid1->Cells[1][1] = "*";
+	Form1->StringGrid2->Cells[1][1] = "3";
+	Form1->StringGrid3->Cells[1][1] = "3";
+	Sleep((Form1->TrackBar1->Position)*10);
+	while (top != -1)   //堆疊內仍有元素
+	{
+		step = pop();
+		while((step.dir <= 7) && (!found)) //還有其他方向可以走
+		{
+			u = step.x+move[step.dir].dx;
+			v = step.y+move[step.dir].dy;
+			if((maze[u][v]==0) && (mark[u][v]==0))
+			{
+				mark[u][v] = 3;                     //設為可走路徑
+				push(step);
+				Form1->StringGrid1->Cells[step.y][step.x] = "*";   	Form1->StringGrid1->Refresh();
+				Form1->StringGrid2->Cells[step.y][step.x] = "3"; 	Form1->StringGrid2->Refresh();
+				Form1->StringGrid3->Cells[step.y][step.x] = "3"; 	Form1->StringGrid3->Refresh();
+				Sleep((Form1->TrackBar1->Position)*10);
+				if((u == m) && (v == p+1))          //回推路徑
+				{
+					found = true;
+					step.x = u;
+					step.y = v+1;
+					step.dir = 2;
+					push(step);
+					Form1->StringGrid1->Cells[v][u] = "$";   Form1->StringGrid1->Cells[v+1][u] = "$";
+					Form1->StringGrid2->Cells[v][u] = "4";   Form1->StringGrid2->Cells[v+1][u] = "4";
+					Form1->StringGrid3->Cells[v][u] = "4";   Form1->StringGrid3->Cells[v+1][u] = "4";
+					Form1->StringGrid1->Refresh();
+					Form1->StringGrid2->Refresh();
+					Form1->StringGrid3->Refresh();
+					for (i=0; i<=m+1; i++)
+					{
+						for (j=0; j<=p+1; j++)
+						{
+							mark[i][j] = maze[i][j];
+						}
+					}
+					mark[u][v+1] = 3;
+					mark[u][v] = 3;
+					while (top != -1)
+					{
+						step = pop();
+						mark[step.x][step.y] = 3;
+						Form1->StringGrid1->Cells[step.y][step.x] = "$";
+						Form1->StringGrid2->Cells[step.y][step.x] = "4";
+						Form1->StringGrid3->Cells[step.y][step.x] = "4";
+						Form1->StringGrid1->Refresh();
+						Form1->StringGrid2->Refresh();
+						Form1->StringGrid3->Refresh();
+						Sleep((Form1->TrackBar1->Position)*10);
+					}
+					Form1->Memo1->Lines->Add(str);
+				}
+				else
+				{
+					step.x = u;
+					step.y = v;
+					step.dir = 0;
+				}
+			}
+			else
+			{
+				if(way == 8)
+					step.dir ++;
+				else if(way == 4)
+					step.dir += 2;
+			}
+			if(step.dir>7)
+			{
+				Form1->StringGrid1->Cells[step.y][step.x] = "$";   	Form1->StringGrid1->Refresh();
+				Form1->StringGrid2->Cells[step.y][step.x] = "3"; 	Form1->StringGrid2->Refresh();
+				Form1->StringGrid3->Cells[step.y][step.x] = "3"; 	Form1->StringGrid3->Refresh();
+			}
+
+		}
+	}
+	mark[1][0] = 3;
+	mark[g_Heigh-2][g_Width-1] = 3;
+	Form1->StringGrid1->Cells[0][1] = "$";
+	Form1->StringGrid2->Cells[0][1] = "4";
+	Form1->StringGrid3->Cells[0][1] = "4";
+	AnsiString str="";
+	Form1->Memo1->Lines->Add("===========Answer(m:"+IntToStr(m)+" p:"+IntToStr(p)+")===========");
+	for (i=0 ; i<m+2 ; i++)
+	{
+		for (str="", j=0 ; j<p+2 ; j++)
+		{
+			str += " "+IntToStr(mark[i][j]);
+		}
+		Form1->Memo1->Lines->Add(str);
+	}
+	for(i = 0; i<g_Heigh; i++)
+	{
+		delete []maze[i];
+	}
+	delete maze;
+	if(found==1)
+		ShowMessage("Success!");
+	else
+		ShowMessage("Can't find a way out!");
+}
+
+//---------------------------------------------------------------------------
+__fastcall TForm1::TForm1(TComponent* Owner)
+	: TForm(Owner)
+{
+	KeyPreview  =  True ;
+	Memo1->Clear();
+	move[0].dx = -1;   move[0].dy = 0;		//  定義 offset
+	move[1].dx = -1;   move[1].dy = 1;
+	move[2].dx = 0;    move[2].dy = 1;
+	move[3].dx = 1;    move[3].dy = 1;
+	move[4].dx = 1;    move[4].dy = 0;
+	move[5].dx = 1;    move[5].dy = -1;
+	move[6].dx = 0;    move[6].dy = -1;
+	move[7].dx = -1;   move[7].dy = -1;
+}
+//---------------------------------------------------------------------------
+
+
+
+
+void __fastcall TForm1::Button2Click(TObject *Sender)
+{
+	//generate maze
+	GenerateFlag = 1;
+	int i, j;
+	g_Heigh = StrToInt(Edit1->Text);  //得高
+	g_Width = StrToInt(Edit2->Text);  //得寬
+	maze = new int *[g_Heigh];
+	for(int i=0; i<g_Heigh; i++)
+		maze[i] = new int [g_Width];
+	int Start_i=1, Start_j=1, End_i=g_Heigh-2, End_j=g_Width-2;
+	int x, y;
+	srand(time(NULL));
+	for (x = 0; x<g_Heigh; x++)       //設立外圍邊界為2
+	{
+		for (y=0; y<g_Width; y++)
+		{
+			if (x==0 || y==0 || x==g_Heigh-1 || y==g_Width-1)
+				maze[x][y] = 2;
+			else
+				maze[x][y] = 1;
+		}
+	}
+	maze = generatemaze(maze, End_i, End_j);
+	maze[Start_i][Start_j-1] = 0;    //設立入口
+	maze[End_i][End_j+1] = 0;        //設立出口
+	if(g_Heigh%2==0)                 //如果是偶數的話 把它變成奇數
+		maze[Start_i][Start_j] = 0;
+	if(g_Width%2==0)
+		maze[Start_i+1][Start_j] = 0;
+	StringGrid1->RowCount = g_Heigh;
+	StringGrid1->ColCount = g_Width;
+	StringGrid2->RowCount = g_Heigh;
+	StringGrid2->ColCount = g_Width;
+	StringGrid3->RowCount = g_Heigh;
+	StringGrid3->ColCount = g_Width;
+	StringGrid4->RowCount = g_Heigh;
+	StringGrid4->ColCount = g_Width;
+	for (i = 0; i<g_Heigh; i++)      //輸入stringrid內
+	{
+		for (j=0; j<g_Width; j++)
+		{
+			StringGrid1->Cells[j][i] = maze[i][j];
+			StringGrid2->Cells[j][i] = maze[i][j];
+			StringGrid3->Cells[j][i] = maze[i][j];
+			StringGrid4->Cells[j][i] = maze[i][j];
+		}
+	}
+    //將迷宮輸入memo
+	Form1->Memo1->Lines->Add("===========Maze(Height:"+IntToStr(g_Heigh)+" Width:"+IntToStr(g_Width)+")===========");
+	for(i = 0; i<g_Heigh; i++)
+	{
+		String out = "  ";
+		for(j = 0; j<g_Width; j++)
+		{
+			out += IntToStr(maze[i][j]);
+			out += "  ";
+		}
+		Form1->Memo1->Lines->Add(out);
+	}
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Button4Click(TObject *Sender)
+{
+	//load maze
+	int temp, grid_Size ;
+	char fileChar;
+    GenerateFlag = 1;
+	if (OpenDialog1->Execute())
+	{
+		AnsiString file_name = OpenDialog1->FileName;
+		FILE *fp = fopen(file_name.c_str(),"r");
+		int i=0, j=0;
+		if (fp)
+		{
+			fscanf(fp,"%d %d",&Heigh,&Width);
+			String str;
+			maze = new int *[Heigh];
+			for(int i=0; i<Heigh; i++)
+				maze[i] = new int [Width];
+			while (fscanf(fp, " %c", &fileChar)!=EOF)
+			{
+				maze[i][j] = atoi(&fileChar);
+				j++;
+				if (j == Width)
+				{
+					j=0;
+					i++;
+				}
+			}
+			str="";
+			Memo1->Lines->Add("===========Maze(H:"+IntToStr(Heigh)+" W:"+IntToStr(Width)+")===========");
+			for (i=0 ; i<Heigh ; i++)
+			{
+				for (str="", j=0 ; j<Width ; j++)
+				{
+					str += "  "+IntToStr(maze[i][j]);
+				}
+				Memo1->Lines->Add(str);
+			}
+			g_maze = maze;
+			g_Heigh = Heigh;
+			g_Width = Width;
+			StringGrid1->ColCount = g_Width;
+			StringGrid1->RowCount = g_Heigh;
+			StringGrid1->FixedCols = 0;
+			StringGrid1->FixedRows = 0;
+			for (i=0; i<g_Width; i++)
+				StringGrid1->ColWidths[i] = grid_Size ;
+			for (i=0; i<g_Heigh; i++)
+				StringGrid1->RowHeights[i] = grid_Size ;
+			StringGrid2->ColCount = g_Width;
+			StringGrid2->RowCount = g_Heigh;
+			StringGrid2->FixedCols = 0;
+			StringGrid2->FixedRows = 0;
+			for (int i=0; i<g_Width; i++)
+				StringGrid2->ColWidths[i] = grid_Size ;
+			for (int i=0; i<g_Heigh; i++)
+				StringGrid2->RowHeights[i] = grid_Size ;
+			StringGrid3->ColCount = g_Width;
+			StringGrid3->RowCount = g_Heigh;
+			StringGrid3->FixedCols = 0;
+			StringGrid3->FixedRows = 0;
+			for (int i=0; i<g_Width; i++)
+				StringGrid3->ColWidths[i] = grid_Size ;
+			for (int i=0; i<g_Heigh; i++)
+				StringGrid3->RowHeights[i] = grid_Size ;
+			StringGrid4->ColCount = g_Width;
+			StringGrid4->RowCount = g_Heigh;
+			StringGrid4->FixedCols = 0;
+			StringGrid4->FixedRows = 0;
+			for (i=0; i<g_Width; i++)
+				StringGrid4->ColWidths[i] = grid_Size ;
+			for (i=0; i<g_Heigh; i++)
+				StringGrid4->RowHeights[i] = grid_Size ;
+			for (int i=0; i<Heigh; i++)
+			{
+				for (int j=0; j<Width; j++)
+				{
+					mark[i][j] = maze[i][j];
+					StringGrid1->Cells[j][i] = maze[i][j];
+					StringGrid2->Cells[j][i] = maze[i][j];
+					StringGrid3->Cells[j][i] = maze[i][j];
+					StringGrid4->Cells[j][i] = maze[i][j];
+				}
+			}
+			StringGrid1->Refresh();
+			StringGrid2->Refresh();
+			StringGrid3->Refresh();
+			StringGrid4->Refresh();
+			fclose(fp);
+		}
+	}
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Button5Click(TObject *Sender)
+{
+	int way = 4;
+	if(RadioButton2->Checked)
+		way = 8;
+	if(GenerateFlag==0)                                      //防呆
+		ShowMessage("Please generate or load a maze first");
+	else
+		FindTour(way);
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Button3Click(TObject *Sender)
+{
+	if(SaveDialog1->Execute())
+	{
+		AnsiString file_name = SaveDialog1->FileName;
+		FILE *fp = fopen(file_name.c_str(),"w");
+		if (fp)
+		{
+			fprintf(fp, "%d %d", g_Heigh, g_Width);
+			putc('\n', fp);
+			for(int i=0 ; i<g_Heigh ; i++)
+			{
+				for (int j=0 ; j<g_Width ; j++)
+				{
+					fprintf(fp, "%d ", maze[i][j]);
+				}
+				putc('\n', fp);
+			}
+			fclose(fp);
+		}
+	}
+}
+//---------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------
+void __fastcall TForm1::Button7Click(TObject *Sender)
+{
+	Form1->Memo1->Lines->Clear();
+    StringGrid1->Refresh();
+	StringGrid2->Refresh();
+	StringGrid3->Refresh();
+	StringGrid4->Refresh();
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::StringGrid2DrawCell(TObject *Sender, int ACol, int ARow, TRect &Rect,
+		  TGridDrawState State)
+{
+    AnsiString data = StringGrid2->Cells[ACol][ARow];
+	if (data == "4") StringGrid2->Canvas->Brush->Color = TColor RGB(87, 132, 172) ;
+	else if (data == "3") StringGrid2->Canvas->Brush->Color = TColor RGB(165, 215, 232) ;
+	else if (data == "2") StringGrid2->Canvas->Brush->Color = TColor RGB(25, 55, 109) ;
+	else if (data == "1") StringGrid2->Canvas->Brush->Color = TColor RGB(87, 108, 188) ;
+	else StringGrid2->Canvas->Brush->Color = TColor RGB(246, 231, 216);
+	StringGrid2->Canvas->FillRect(Rect);
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::StringGrid3DrawCell(TObject *Sender, int ACol, int ARow, TRect &Rect,
+		  TGridDrawState State)
+{
+	AnsiString data = StringGrid3->Cells[ACol][ARow];
+	if (data == "4") StringGrid3->Canvas->Brush->Color = TColor RGB((RandColor+50)%255, (RandColor+50)%255, (RandColor+50)%255) ;
+	else if (data == "3") StringGrid3->Canvas->Brush->Color = TColor RGB(rand()%255+1, rand()%255+1, rand()%255+1) ;
+	else if (data == "2") StringGrid3->Canvas->Brush->Color = TColor RGB((RandColor+150)%255, (RandColor+150)%255, (RandColor+150)%255) ;
+	else if (data == "1") StringGrid3->Canvas->Brush->Color = TColor RGB(RandColor, RandColor, RandColor) ;
+	else StringGrid3->Canvas->Brush->Color = TColor RGB((RandColor+100)%255, (RandColor+100)%255, (RandColor+100)%255);
+	StringGrid3->Canvas->FillRect(Rect);
+}
+//---------------------------------------------------------------------------
+
+
+
+void __fastcall TForm1::StringGrid1DrawCell(TObject *Sender, int ACol, int ARow, TRect &Rect,
+		  TGridDrawState State)
+{
+    AnsiString data = StringGrid1->Cells[ACol][ARow];
+	if (data == "2")      StringGrid1->Canvas->Brush->Color = TColor RGB(69, 69, 69) ;
+	else if (data == "1") StringGrid1->Canvas->Brush->Color = TColor RGB(255, 96, 0);
+	else                  StringGrid1->Canvas->Brush->Color =TColor RGB(255, 165, 89);
+	StringGrid1->Canvas->FillRect(Rect);
+	if (found && data == "$")
+		StringGrid1->Canvas->TextRect(Rect, Rect.Left+10, Rect.Top+10, data);
+	else if (data == "*")
+		StringGrid1->Canvas->TextRect(Rect, Rect.Left+10, Rect.Top+10, data);
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::StringGrid4DrawCell(TObject *Sender, int ACol, int ARow, TRect &Rect,
+          TGridDrawState State)
+{
+    AnsiString data = StringGrid4->Cells[ACol][ARow];
+	if (data == "4") StringGrid4->Canvas->Brush->Color = TColor RGB(85, 132, 172) ;
+	else if (data == "3") StringGrid4->Canvas->Brush->Color = TColor RGB(149, 209, 204) ;
+	else if (data == "2") StringGrid4->Canvas->Brush->Color = TColor RGB(14, 24, 95) ;
+	else if (data == "1") StringGrid4->Canvas->Brush->Color = TColor RGB(34, 87, 126) ;
+	else StringGrid4->Canvas->Brush->Color = TColor RGB(246, 231, 216);
+	StringGrid4->Canvas->FillRect(Rect);
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::StringGrid4KeyDown(TObject *Sender, WORD &Key, TShiftState Shift)
+
+{
+	//設一個圖案
+	//如果可以經過就取代
+	//然後到出口說成功
+	//輸出成功路徑
+	{
+		if (Key==VK_RIGHT)
+		{
+			if (play[a+1][b]==0)
+			{
+				Form1->StringGrid4->Cells[a+1][b] = "4";
+				Form1->StringGrid4->Cells[a][b] = "0";
+				Form1->StringGrid4->Refresh();
+			}
+			a=a+1;
+			b=b;
+		}
+		else
+		{
+            ShowMessage("Try again");
+        }
+	}
+    {
+		if (Key==VK_LEFT)
+		{
+			if (play[a-1][b]==0)
+			{
+				Form1->StringGrid4->Cells[a-1][b] = "4";
+				Form1->StringGrid4->Cells[a][b] = "0";
+				Form1->StringGrid4->Refresh();
+			}
+			a=a-1;
+			b=b;
+		}
+	}
+    {
+		if (Key==VK_RIGHT)
+		{
+			if (play[a+1][b]==0)
+			{
+				Form1->StringGrid4->Cells[a+1][b] = "4";
+				Form1->StringGrid4->Cells[a][b] = "0";
+				Form1->StringGrid4->Refresh();
+				a=a+1;
+				b=b;
+			}
+		}
+	}
+    {
+		if (Key==VK_RIGHT)
+		{
+			if (play[a+1][b]==0)
+			{
+				Form1->StringGrid4->Cells[a+1][b] = "4";
+				Form1->StringGrid4->Cells[a][b] = "0";
+				Form1->StringGrid4->Refresh();
+				a=a+1;
+				b=b;
+			}
+		}
+	}
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Button6Click(TObject *Sender)
+{
+	//新路徑
+	int way = 4;
+	if(RadioButton2->Checked)
+		way = 8;
+	if(GenerateFlag==0)                                      //防呆
+		ShowMessage("Please generate or load a maze first");
+	else
+		FindNewTour(way);
+}
+//---------------------------------------------------------------------------
+
+
+
+
+
+void __fastcall TForm1::TabSheet5ContextPopup(TObject *Sender, TPoint &MousePos, bool &Handled)
+
+{
+    ShowMessage("Please generate or load a maze first");
+}
+//---------------------------------------------------------------------------
+
+
+
+void __fastcall TForm1::Button1Click(TObject *Sender)
+{
+	m = g_Heigh-2;
+	p = g_Width-2;
+	int i,j;
+	for (i=0; i<=m+1; i++)
+	{
+		for (j=0; j<=p+1; j++)
+		{
+			play[i][j] = maze[i][j];
+		}
+	}
+	Form1->StringGrid4->Cells[0][1] = "4"; //設立自行遊戲的入口
+}
+//---------------------------------------------------------------------------
+

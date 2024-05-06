@@ -1,0 +1,65 @@
+//---------------------------------------------------------------------------
+
+#include <vcl.h>
+#pragma hdrstop
+
+#include "Unit2.h"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+#pragma resource "*.dfm"
+int n,range,max_range,LargeInt;
+int **W;
+TForm2 *Form2;
+//---------------------------------------------------------------------------
+__fastcall TForm2::TForm2(TComponent* Owner)
+	: TForm(Owner)
+{
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm2::Button1Click(TObject *Sender)
+{
+    int i, j, k;
+	n = StrToInt(Edit1->Text);
+	range = StrToInt(Edit2->Text);
+	max_range = StrToInt(Edit3->Text);
+	LargeInt = StrToInt(Edit4->Text);
+    W = new int * [n];
+    for(i = 0; i < n; i++)
+        W[i] = new int [n];
+    for (i=0; i<n; i++)
+    {
+        for (j=i+1; j<n; j++)
+        {
+            W[i][j] = rand()%range + 1;
+            if (W[i][j] > max_range)
+                W[i][j] = LargeInt;
+            W[j][i] = W[i][j];
+        }
+        W[i][i] = LargeInt;
+    }
+    if (CheckBox1->Checked)
+    {
+        StringGrid1->RowCount = n;
+        StringGrid1->ColCount = n;
+        for (i=0; i<n; i++)
+        {
+            for (j=0; j<n; j++)
+			{
+                StringGrid1->Cells[i][j]= W[i][j];
+			}
+        }
+	}
+}
+//---------------------------------------------------------------------------
+
+
+void __fastcall TForm2::Button2Click(TObject *Sender)
+{
+	n = StrToInt(Edit1->Text);
+	range = StrToInt(Edit2->Text);
+	max_range = StrToInt(Edit3->Text);
+	LargeInt = StrToInt(Edit4->Text);
+}
+//--------------------------------------------------------------------------
